@@ -122,7 +122,7 @@ Round 5: Each agent updates position (Bayesian)
 
 | Capability | Nebius Model | Usage |
 |---|---|---|
-| **Adversarial Reasoning** | `deepseek/deepseek-chat-v3-2-0324` | Each debate agent uses deep reasoning |
+| **Adversarial Reasoning** | `deepseek-ai/DeepSeek-V3.2` | Each debate agent uses deep reasoning |
 | **Orchestration** | `meta-llama/Llama-3.3-70B-Instruct` | Route papers, manage debate, synthesize |
 | **Literature Search** | Function calling → `search_pubmed()` | Real-time PubMed/arXiv queries |
 | **Paper Embeddings** | `Qwen/Qwen3-Embedding-8B` | 4096-dim embeddings for RAG + similarity |
@@ -140,7 +140,7 @@ client = OpenAI(
 
 # Heavy reasoning for debate agents
 response = client.chat.completions.create(
-    model="deepseek/deepseek-chat-v3-2-0324",
+    model="deepseek-ai/DeepSeek-V3.2",
     messages=[
         {"role": "system", "content": "You are the Optimist Agent. Find supporting evidence for the hypothesis."},
         {"role": "user", "content": "Hypothesis: TRAF2 mediates CAR-T resistance via NF-κB"}
@@ -198,7 +198,7 @@ The CHP governs how scientific claims progress from "interesting idea" to "valid
 
 ```bash
 # 1. Clone
-git clone https://github.com/zan-maker/scientific-consensus-engine
+git clone https://codeberg.org/cubiczan/scientific-consensus-engine
 cd scientific-consensus-engine
 
 # 2. Set up Nebius
@@ -214,7 +214,28 @@ python pipeline.py --topic "CAR-T therapy resistance mechanisms" --max-papers 10
 python debate.py --hypothesis "TRAF2 mediates CAR-T resistance via NF-kB signaling"
 
 # 6. Generate research brief
-python synthesize.py --session latest
+python synthesize.py --session latest --format html
+
+# Or run end-to-end demo (mock mode without API key)
+python run_demo.py --mock
+```
+
+### Project Structure
+
+```
+scientific-consensus-engine/
+├── pipeline.py              # PubMed ingest + Qwen3 embeddings
+├── debate.py                # Multi-agent debate + CHP state machine
+├── synthesize.py            # Research brief (JSON/HTML)
+├── run_demo.py              # End-to-end demo runner
+├── chp.py                   # Consensus Hardening Protocol
+├── nebius_client.py         # Nebius Token Factory wrapper
+├── agents/
+│   ├── debate_agents.py     # Optimist, Skeptic, Validator
+│   ├── context_engine.py    # Paper store + similarity retrieval
+│   └── mock_debate.py       # Offline demo without API key
+└── tools/
+    └── literature_search.py # PubMed E-utilities + fallback corpus
 ```
 
 ---
@@ -237,9 +258,8 @@ python synthesize.py --session latest --format json --output findings.json
 # Generate HTML report
 python synthesize.py --session latest --format html --output report.html
 
-# Continuous monitoring (runs daily)
-python monitor.py --topic "TRAF2 CAR-T resistance" \
-    --check-interval 86400 --notify email
+# Offline mock debate (no Nebius API key required)
+python debate.py --hypothesis "TRAF2 mediates CAR-T resistance via NF-kB" --mock
 ```
 
 ---
