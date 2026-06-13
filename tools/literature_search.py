@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 import urllib.parse
 import urllib.request
@@ -10,6 +11,8 @@ import xml.etree.ElementTree as ET
 from typing import Optional
 
 USER_AGENT = "ScientificConsensusEngine/1.0 (Nucleate NYC BioHack 2026)"
+
+logger = logging.getLogger(__name__)
 
 
 def _http_get(url: str, timeout: int = 20) -> str:
@@ -47,6 +50,11 @@ def search_pubmed(query: str, max_results: int = 10) -> list[dict]:
         xml_text = _http_get(fetch_url)
         return _parse_pubmed_xml(xml_text)
     except Exception:
+        logger.warning(
+            "PubMed lookup failed for query %r; falling back to demo papers",
+            query,
+            exc_info=True,
+        )
         return _mock_papers(query, max_results)
 
 

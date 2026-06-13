@@ -5,6 +5,8 @@ from typing import Optional
 
 from openai import OpenAI
 
+from cubiczan_resilience import resilient
+
 NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1"
 ORCHESTRATOR_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
 DEBATE_MODEL = "deepseek-ai/DeepSeek-V3.2"
@@ -19,7 +21,7 @@ def get_client() -> OpenAI:
         api_key = os.environ.get("NEBIUS_API_KEY")
         if not api_key:
             raise ValueError("NEBIUS_API_KEY environment variable must be set")
-        _client = OpenAI(base_url=NEBIUS_BASE_URL, api_key=api_key)
+        _client = OpenAI(base_url=NEBIUS_BASE_URL, api_key=api_key, timeout=60)
     return _client
 
 
@@ -31,6 +33,7 @@ class NebiusAgent:
         self.system_prompt = system_prompt
         self.client = get_client()
 
+    @resilient(timeout=60, max_attempts=3)
     def chat(
         self,
         messages: list,
@@ -76,6 +79,7 @@ class NebiusAgent:
             ]
         return result
 
+    @resilient(timeout=60, max_attempts=3)
     def embed(self, texts: list[str]) -> list[list[float]]:
         response = self.client.embeddings.create(model=EMBEDDING_MODEL, input=texts)
         return [item.embedding for item in response.data]
