@@ -47,6 +47,7 @@ A multi-agent debate arena where specialized agents argue for and against a scie
 | **Novelty Detection** | Cross-field connections using Qwen3 embedding similarity |
 | **Evidence Citations** | Every claim traced to a paper with PMID/arXiv ID |
 | **Live Updating** | Re-runs on new publications in a topic area |
+| **Observability** | PRISMtrace on BlockConvey for LLM calls and embeddings |
 
 ---
 
@@ -156,6 +157,14 @@ emb_response = client.embeddings.create(
 )
 print(f"Embedding dim: {len(emb_response.data[0].embedding)}")  # 4096
 ```
+
+### PRISMtrace Configuration
+
+Set these environment variables to enable tracing:
+
+- `PRISMTRACE_API_KEY`
+- `PRISMTRACE_PROJECT_ID`
+- `PRISMTRACE_HOST` (optional; defaults to BlockConvey)
 
 ---
 

@@ -1,6 +1,7 @@
 """Nebius Token Factory client wrapper for Scientific Consensus Engine."""
 
 import os
+import time
 from typing import Optional
 
 from openai import OpenAI
@@ -9,8 +10,11 @@ from cubiczan_resilience import resilient
 
 # --- Datadog LLM Observability (no-op unless DD_LLMOBS_ENABLED) ---
 from observability import init_observability
+from prism_observability import build_prism_telemetry, trace_llm as trace_prism_llm
 
 init_observability("scientific-consensus-engine")
+
+_PRISM = build_prism_telemetry()
 
 NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1"
 ORCHESTRATOR_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
@@ -66,8 +70,14 @@ class NebiusAgent:
         if response_format:
             kwargs["response_format"] = response_format
 
+        start = time.perf_counter()
         response = self.client.chat.completions.create(**kwargs)
         message = response.choices[0].message
+        latency_ms = int((time.perf_counter() - start) * 1000)
+
+        usage = getattr(response, "usage", None)
+        token_count_input = int(getattr(usage, "prompt_tokens", 0) or 0)
+        token_count_output = int(getattr(usage, "completion_tokens", 0) or 0)
 
         result = {"content": message.content, "role": message.role}
         if message.tool_calls:
@@ -82,9 +92,42 @@ class NebiusAgent:
                 }
                 for tc in message.tool_calls
             ]
+        trace_prism_llm(
+            _PRISM,
+            model=self.model,
+            input_messages=full_messages,
+            output=message.content or "",
+            latency_ms=latency_ms,
+            token_count_input=token_count_input,
+            token_count_output=token_count_output,
+            metadata={
+                "source": "scientific-consensus-engine",
+                "operation": "chat",
+                "has_tool_calls": bool(message.tool_calls),
+            },
+        )
         return result
 
     @resilient(timeout=60, max_attempts=3)
     def embed(self, texts: list[str]) -> list[list[float]]:
+        start = time.perf_counter()
         response = self.client.embeddings.create(model=EMBEDDING_MODEL, input=texts)
+        latency_ms = int((time.perf_counter() - start) * 1000)
+        usage = getattr(response, "usage", None)
+        token_count_input = int(getattr(usage, "prompt_tokens", 0) or 0)
+        token_count_output = int(getattr(usage, "completion_tokens", 0) or 0)
+        trace_prism_llm(
+            _PRISM,
+            model=EMBEDDING_MODEL,
+            input_messages=[{"role": "user", "content": "\n\n".join(texts[:3])}],
+            output=f"{len(response.data)} embeddings",
+            latency_ms=latency_ms,
+            token_count_input=token_count_input,
+            token_count_output=token_count_output,
+            metadata={
+                "source": "scientific-consensus-engine",
+                "operation": "embed",
+                "input_count": len(texts),
+            },
+        )
         return [item.embedding for item in response.data]
