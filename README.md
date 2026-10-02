@@ -8,6 +8,16 @@
 
 ---
 
+<!-- product-screenshots:start -->
+## Product screenshots
+
+Debate arena with the optimist, skeptic, and validator perspectives shown side by side.
+
+![scientific-consensus-engine product interface](screenshots/02-debate-arena.png)
+
+Existing UI capture stored in this repository; displayed values may be demo or sample data.
+<!-- product-screenshots:end -->
+
 ## 📋 Table of Contents
 - [Challenge Track](#-challenge-track-research-agent)
 - [Features](#-features)
